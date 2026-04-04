@@ -1,0 +1,5 @@
+{
+  "name": "BBS Formula Explainer",
+  "description": "A simple tool for T.U. BBS 4th year students to upload formulas and get easy-to-understand explanations with audio support.",
+  "requestFramePermissions": ["camera"]
+}
