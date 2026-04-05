@@ -364,7 +364,7 @@ export default function App() {
                   </div>
                   <div className="space-y-1 sm:space-y-2">
                     <h3 className="text-lg sm:text-xl font-bold text-slate-900">Analyzing Formulas...</h3>
-                    <p className="text-xs sm:text-sm text-slate-500">Processing all formulas in Nepali & English.</p>
+                    <p className="text-xs sm:text-sm text-slate-500">The AI is taking its time to think and provide the best explanations with examples for every formula.</p>
                   </div>
                 </div>
               )}
