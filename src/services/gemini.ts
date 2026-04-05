@@ -9,7 +9,7 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
   const prompt = `You are an expert tutor for Tribhuvan University (T.U.) BBS 4th year students. 
   Analyze the formula(s) in the provided image or document.
   
-  CRITICAL INSTRUCTIONS:
+  CRITICAL INSTRUCTIONS (NEW VERSION 2.0):
   1. Identify ALL formulas in the image. If there are 18 formulas, you must explain all 18. If there are 26, explain all 26. DO NOT MISS ANY.
   2. Explain each formula in the SIMPLEST way possible (like explaining to a 10-year-old) using a mix of Nepali (MUST use Devanagari script, e.g., नेपाली) and English.
   3. Use English terms like "vdw" or other technical terms if needed, but explain them in simple Nepali Devanagari.
@@ -17,13 +17,14 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
   5. EXAMPLES (MANDATORY & PLENTIFUL): 
      - You MUST provide AT LEAST 2-3 practical examples for EVERY SINGLE formula identified. 
      - If you find 18 formulas, there MUST be at least 36-54 examples in your response.
+     - Each example must have different numbers to show how the formula works in different scenarios.
      - Make the examples very easy to follow with step-by-step calculations.
   6. This is for an EXAM, so accuracy is mandatory. No mistakes.
   7. Do not cut down or summarize. Provide full, detailed, and high-quality explanations for every single formula found.
   8. Use the word "उत्तरहरू" (which means Answers) to label your sections.
   9. IMPORTANT: Use LaTeX notation for all mathematical formulas and expressions (e.g., use $...$ for inline math and $$...$$ for block math). This ensures they are rendered clearly.
   
-  Format your response in clear Markdown with numbered sections for each formula. Take your time to ensure the best, simplest, and most complete answer with lots of examples.`;
+  Format your response in clear Markdown with numbered sections for each formula. Take your time to ensure the best, simplest, and most complete answer with lots of examples. This is the new enhanced version, so provide much more detail than before.`;
 
   const response = await ai.models.generateContent({
     model,
