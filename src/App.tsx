@@ -452,6 +452,22 @@ export default function App() {
                     >
                       {explanation}
                     </ReactMarkdown>
+                    
+                    <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <button 
+                        onClick={reset}
+                        className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group"
+                      >
+                        <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+                        Analyze New Set
+                      </button>
+                      <button 
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="w-full sm:w-auto px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-lg hover:bg-slate-200 transition-all"
+                      >
+                        Back to Top
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}
