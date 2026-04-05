@@ -204,11 +204,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-100 pb-10">
-      {/* Version Banner - Impossible to miss */}
-      <div className="bg-indigo-600 text-white py-2 text-center text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] shadow-md relative z-[60]">
-        Latest Version 2.0 - Enhanced with 3x Examples & Thinking Mode
-      </div>
-      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
