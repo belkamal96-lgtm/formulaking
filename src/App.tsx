@@ -33,6 +33,7 @@ export default function App() {
   const [showCamera, setShowCamera] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -124,19 +125,25 @@ export default function App() {
       return;
     }
 
-    setIsSpeaking(true);
+    setIsGeneratingAudio(true);
     try {
-      const url = await generateSpeech(explanation);
+      // Use a shorter version for TTS if it's too long, or just ensure it's generated
+      const url = await generateSpeech(explanation.substring(0, 5000)); // Limit length for TTS stability
       if (url) {
         setAudioUrl(url);
         if (audioRef.current) {
           audioRef.current.src = url;
           audioRef.current.play();
+          setIsSpeaking(true);
         }
+      } else {
+        setError("Could not generate audio. Please try again.");
       }
     } catch (err) {
       console.error("Speech error:", err);
-      setIsSpeaking(false);
+      setError("Audio generation failed.");
+    } finally {
+      setIsGeneratingAudio(false);
     }
   };
 
@@ -144,18 +151,40 @@ export default function App() {
     if (!contentRef.current || !explanation) return;
     setIsDownloading(true);
     try {
+      // Wait a bit for KaTeX to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const canvas = await html2canvas(contentRef.current, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
+        backgroundColor: "#ffffff",
+        windowWidth: contentRef.current.scrollWidth,
+        windowHeight: contentRef.current.scrollHeight,
       });
+      
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      // Handle multi-page PDF if content is too long
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+      
       pdf.save("BBS-Formula-Explanation.pdf");
     } catch (err) {
       console.error("PDF error:", err);
@@ -361,7 +390,7 @@ export default function App() {
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={handleSpeak}
-                        disabled={isSpeaking && !audioUrl}
+                        disabled={isGeneratingAudio}
                         className={cn(
                           "flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded-full font-bold text-xs transition-all shadow-sm",
                           isSpeaking 
@@ -369,7 +398,12 @@ export default function App() {
                             : "bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50"
                         )}
                       >
-                        {isSpeaking ? (
+                        {isGeneratingAudio ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            Loading...
+                          </>
+                        ) : isSpeaking ? (
                           <>
                             <Volume2 size={14} className="animate-pulse" />
                             Speaking...
