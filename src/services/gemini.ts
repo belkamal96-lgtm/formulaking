@@ -1,7 +1,8 @@
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 
 const getApiKey = () => {
-  const key = process.env.GEMINI_API_KEY;
+  // Try to get from process.env (Vite defined) or import.meta.env
+  const key = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
     return null;
   }
