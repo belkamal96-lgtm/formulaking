@@ -38,7 +38,7 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
 
   // Handle Camera
   useEffect(() => {
@@ -148,44 +148,50 @@ export default function App() {
   };
 
   const downloadPDF = async () => {
-    if (!contentRef.current || !explanation) return;
+    if (!pdfContentRef.current || !explanation) return;
     setIsDownloading(true);
     try {
       // Wait a bit for KaTeX to be fully ready
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const canvas = await html2canvas(contentRef.current, {
+      const element = pdfContentRef.current;
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: "#ffffff",
-        windowWidth: contentRef.current.scrollWidth,
-        windowHeight: contentRef.current.scrollHeight,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
       });
       
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
-      // Handle multi-page PDF if content is too long
-      let heightLeft = pdfHeight;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
       let position = 0;
-      const pageHeight = pdf.internal.pageSize.getHeight();
 
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
+      // Add first page
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
 
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
+      // Add subsequent pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
       }
       
-      pdf.save("BBS-Formula-Explanation.pdf");
+      pdf.save("Formula-Results.pdf");
     } catch (err) {
       console.error("PDF error:", err);
       setError("Failed to generate PDF. Please try again.");
@@ -204,11 +210,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-100 pb-10">
-      {/* Version Banner - Impossible to miss */}
-      <div className="bg-indigo-600 text-white py-2 text-center text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] shadow-md relative z-[60]">
-        Latest Version 2.0 - Enhanced with 3x Examples & Thinking Mode
-      </div>
-      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -219,7 +220,6 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">BBS Formulas</h1>
-                <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">v2.0</span>
               </div>
               <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-widest">T.U. BBS 4th Year • Enhanced</p>
             </div>
@@ -437,29 +437,32 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-                  <div ref={contentRef} className="p-6 sm:p-8 prose prose-slate max-w-none overflow-auto">
+                  <div className="p-6 sm:p-8 prose prose-slate max-w-none overflow-auto">
                     <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
                       <CheckCircle2 size={18} className="text-emerald-500" />
                       <p className="text-xs sm:text-sm text-slate-500 font-medium italic">
                         All formulas found have been explained in Nepali & English mix.
                       </p>
                     </div>
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkMath]}
-                      rehypePlugins={[rehypeKatex]}
-                      components={{
-                        h1: ({node, ...props}) => <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4" {...props} />,
-                        h2: ({node, ...props}) => <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-6 mb-3" {...props} />,
-                        h3: ({node, ...props}) => <h3 className="text-base sm:text-lg font-bold text-slate-800 mt-4 mb-2" {...props} />,
-                        p: ({node, ...props}) => <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-4" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-2 mb-4 text-slate-600" {...props} />,
-                        li: ({node, ...props}) => <li className="ml-4 text-sm sm:text-base" {...props} />,
-                        code: ({node, ...props}) => <code className="bg-slate-100 text-indigo-600 px-1.5 py-0.5 rounded font-mono text-xs sm:text-sm" {...props} />,
-                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-indigo-200 pl-4 italic text-slate-500 my-4 text-sm sm:text-base" {...props} />,
-                      }}
-                    >
-                      {explanation}
-                    </ReactMarkdown>
+                    
+                    <div ref={pdfContentRef} className="bg-white p-2">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={{
+                          h1: ({node, ...props}) => <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-6 mb-3" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-base sm:text-lg font-bold text-slate-800 mt-4 mb-2" {...props} />,
+                          p: ({node, ...props}) => <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-4" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-2 mb-4 text-slate-600" {...props} />,
+                          li: ({node, ...props}) => <li className="ml-4 text-sm sm:text-base" {...props} />,
+                          code: ({node, ...props}) => <code className="bg-slate-100 text-indigo-600 px-1.5 py-0.5 rounded font-mono text-xs sm:text-sm" {...props} />,
+                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-indigo-200 pl-4 italic text-slate-500 my-4 text-sm sm:text-base" {...props} />,
+                        }}
+                      >
+                        {explanation}
+                      </ReactMarkdown>
+                    </div>
                     
                     <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
                       <button 
