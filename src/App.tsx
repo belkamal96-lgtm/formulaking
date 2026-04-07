@@ -292,10 +292,7 @@ export default function App() {
               <BookOpen size={20} className="sm:w-6 sm:h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">BBS Formulas</h1>
-                <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">v2.0</span>
-              </div>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">BBS Formulas</h1>
               <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-widest">T.U. BBS 4th Year • Enhanced</p>
             </div>
           </div>
@@ -583,6 +580,7 @@ export default function App() {
       <footer className="max-w-4xl mx-auto px-6 py-12 text-center">
         <p className="text-xl font-bold text-slate-600">Made by Kamal Belbase</p>
         <p className="mt-2 text-xs text-slate-400">Exam-ready explanations in Nepali & English</p>
+        <p className="mt-4 text-[8px] text-slate-300 uppercase tracking-widest">Last Updated: April 7, 2026 (Gemini Version)</p>
       </footer>
     </div>
   );
