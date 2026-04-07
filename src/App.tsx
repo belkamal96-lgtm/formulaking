@@ -379,9 +379,24 @@ export default function App() {
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl sm:rounded-2xl flex items-center gap-3">
-                  <X size={18} />
-                  <p className="text-sm font-medium">{error}</p>
+                <div className="bg-red-50 border border-red-100 text-red-600 p-6 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-3">
+                    <X size={20} className="shrink-0" />
+                    <p className="text-sm font-bold">Analysis Error</p>
+                  </div>
+                  <p className="text-sm leading-relaxed">{error}</p>
+                  {error.includes("Vercel") && (
+                    <div className="pt-2 border-t border-red-100">
+                      <p className="text-xs font-medium text-red-500 mb-2 uppercase tracking-wider">Quick Fix Guide:</p>
+                      <ol className="text-xs space-y-1 list-decimal list-inside text-red-500/80">
+                        <li>Go to your <strong>Vercel Dashboard</strong></li>
+                        <li>Select this project &gt; <strong>Settings</strong> &gt; <strong>Environment Variables</strong></li>
+                        <li>Add <strong>VITE_GEMINI_API_KEY</strong> as the name</li>
+                        <li>Paste your <strong>Google AI Studio API Key</strong> as the value</li>
+                        <li><strong>Redeploy</strong> your app to apply changes</li>
+                      </ol>
+                    </div>
+                  )}
                 </div>
               )}
 

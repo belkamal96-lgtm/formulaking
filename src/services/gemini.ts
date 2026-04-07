@@ -1,8 +1,9 @@
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 
 const getApiKey = () => {
-  // Try to get from process.env (Vite defined) or import.meta.env
+  // Use the key provided by Vite's define or from import.meta.env
   const key = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  
   if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
     return null;
   }
@@ -12,7 +13,7 @@ const getApiKey = () => {
 export async function analyzeFormula(fileBase64: string, mimeType: string) {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is missing. Please add it to your environment variables (e.g., in Vercel settings).");
+    throw new Error("GEMINI_API_KEY is missing on Vercel. Please go to Vercel Settings > Environment Variables and add 'VITE_GEMINI_API_KEY' with your Google AI Studio API key.");
   }
   
   const ai = new GoogleGenAI({ apiKey });
