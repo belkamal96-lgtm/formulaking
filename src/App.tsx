@@ -156,16 +156,24 @@ export default function App() {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
+        scale: 3, // Increased scale for better quality
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: -window.scrollY,
         onclone: (clonedDoc) => {
           // Force standard colors on cloned elements to avoid oklch/oklab issues in html2canvas
           const elements = clonedDoc.getElementsByTagName('*');
           for (let i = 0; i < elements.length; i++) {
             const el = elements[i] as HTMLElement;
+
+            // Fix for KaTeX/Math rendering in html2canvas
+            if (el.classList.contains('katex-html')) {
+              el.style.display = 'inline-block';
+            }
+
             if (el.style) {
               const computed = window.getComputedStyle(el);
               const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'boxShadow'];
@@ -219,15 +227,23 @@ export default function App() {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
+        scale: 3, // Increased scale for better quality
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: -window.scrollY,
         onclone: (clonedDoc) => {
           const elements = clonedDoc.getElementsByTagName('*');
           for (let i = 0; i < elements.length; i++) {
             const el = elements[i] as HTMLElement;
+
+            // Fix for KaTeX/Math rendering in html2canvas
+            if (el.classList.contains('katex-html')) {
+              el.style.display = 'inline-block';
+            }
+
             if (el.style) {
               const computed = window.getComputedStyle(el);
               const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'boxShadow'];
@@ -532,7 +548,7 @@ export default function App() {
                       {explanation}
                     </ReactMarkdown>
                     
-                    <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div data-html2canvas-ignore className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
                       <button 
                         onClick={reset}
                         className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group"
