@@ -172,6 +172,11 @@ export default function App() {
             // Fix for KaTeX/Math rendering in html2canvas
             if (el.classList.contains('katex-html')) {
               el.style.display = 'inline-block';
+              el.style.width = 'auto';
+            }
+            // Fix for division lines (vlist)
+            if (el.classList.contains('vlist-t')) {
+              el.style.display = 'inline-table';
             }
 
             if (el.style) {
@@ -242,6 +247,11 @@ export default function App() {
             // Fix for KaTeX/Math rendering in html2canvas
             if (el.classList.contains('katex-html')) {
               el.style.display = 'inline-block';
+              el.style.width = 'auto';
+            }
+            // Fix for division lines (vlist)
+            if (el.classList.contains('vlist-t')) {
+              el.style.display = 'inline-table';
             }
 
             if (el.style) {
@@ -580,7 +590,12 @@ export default function App() {
       <footer className="max-w-4xl mx-auto px-6 py-12 text-center">
         <p className="text-xl font-bold text-slate-600">Made by Kamal Belbase</p>
         <p className="mt-2 text-xs text-slate-400">Exam-ready explanations in Nepali & English</p>
-        <p className="mt-4 text-[8px] text-slate-300 uppercase tracking-widest">Last Updated: April 7, 2026 (Gemini Version)</p>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest">
+            Powered by Google Gemini Only
+          </span>
+          <p className="text-[8px] text-slate-300 uppercase tracking-widest">Last Updated: April 7, 2026</p>
+        </div>
       </footer>
     </div>
   );
