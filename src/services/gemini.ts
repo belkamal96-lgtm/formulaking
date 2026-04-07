@@ -1,38 +1,22 @@
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
+import axios from "axios";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function analyzeFormula(fileBase64: string, mimeType: string) {
-  // Using gemini-3.1-pro-preview with HIGH thinking level for best quality as requested
-  const model = "gemini-3.1-pro-preview";
-  
-  const prompt = `You are an expert tutor for Tribhuvan University (T.U.) BBS 4th year students. 
-  Analyze the formula(s) in the provided image or document.
-  
-  CRITICAL INSTRUCTIONS (NEW VERSION 2.0):
-  1. Identify ALL formulas in the image. If there are 18 formulas, you must explain all 18. If there are 26, explain all 26. DO NOT MISS ANY.
-  2. Explain each formula in the SIMPLEST way possible (like explaining to a 10-year-old) using a mix of Nepali (MUST use Devanagari script, e.g., नेपाली) and English.
-  3. Use English terms like "vdw" or other technical terms if needed, but explain them in simple Nepali Devanagari.
-  4. Break down each component of every formula clearly. Tell the student exactly what each letter or symbol means in very simple words.
-  5. EXAMPLES (MANDATORY & PLENTIFUL): 
-     - You MUST provide AT LEAST 2-3 practical examples for EVERY SINGLE formula identified. 
-     - If you find 18 formulas, there MUST be at least 36-54 examples in your response.
-     - Each example must have different numbers to show how the formula works in different scenarios.
-     - Make the examples very easy to follow with step-by-step calculations.
-  6. This is for an EXAM, so accuracy is mandatory. No mistakes.
-  7. Do not cut down or summarize. Provide full, detailed, and high-quality explanations for every single formula found.
-  8. Use the word "उत्तरहरू" (which means Answers) to label your sections.
-  9. IMPORTANT: Use LaTeX notation for all mathematical formulas and expressions (e.g., use $...$ for inline math and $$...$$ for block math). This ensures they are rendered clearly.
-  
-  Format your response in clear Markdown with numbered sections for each formula. Take your time to ensure the best, simplest, and most complete answer with lots of examples. This is the new enhanced version, so provide much more detail than before.`;
+  // Step 1: Use Gemini to extract raw formulas from the image
+  const ocrModel = "gemini-3.1-flash-lite-preview";
+  const ocrPrompt = `Extract ALL mathematical formulas from the provided image. 
+  Return ONLY the formulas themselves, one per line. 
+  Do not explain them yet. Just list them clearly.`;
 
-  const response = await ai.models.generateContent({
-    model,
+  const ocrResponse = await ai.models.generateContent({
+    model: ocrModel,
     contents: [
       {
         role: "user",
         parts: [
-          { text: prompt },
+          { text: ocrPrompt },
           {
             inlineData: {
               data: fileBase64,
@@ -42,12 +26,44 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
         ],
       },
     ],
-    config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
-    }
   });
 
-  return response.text;
+  const extractedFormulas = ocrResponse.text;
+
+  if (!extractedFormulas || extractedFormulas.trim().length === 0) {
+    return "No formulas found in the image. Please try again with a clearer picture.";
+  }
+
+  // Step 2: Use the new RapidAPI ChatGPT endpoint for high-quality explanations
+  const chatPrompt = `You are an expert tutor for Tribhuvan University (T.U.) BBS 4th year students. 
+  Explain the following formulas in the SIMPLEST way possible (like explaining to a 10-year-old) using a mix of Nepali (MUST use Devanagari script, e.g., नेपाली) and English.
+  
+  FORMULAS TO EXPLAIN:
+  ${extractedFormulas}
+  
+  CRITICAL INSTRUCTIONS (NEW VERSION 2.0):
+  1. Explain ALL formulas listed above. DO NOT MISS ANY.
+  2. Use English terms like "vdw" or other technical terms if needed, but explain them in simple Nepali Devanagari.
+  3. Break down each component of every formula clearly. Tell the student exactly what each letter or symbol means in very simple words.
+  4. EXAMPLES (MANDATORY & PLENTIFUL): 
+     - You MUST provide AT LEAST 2-3 practical examples for EVERY SINGLE formula identified. 
+     - Each example must have different numbers to show how the formula works in different scenarios.
+     - Make the examples very easy to follow with step-by-step calculations.
+  5. This is for an EXAM, so accuracy is mandatory. No mistakes.
+  6. Do not cut down or summarize. Provide full, detailed, and high-quality explanations for every single formula found.
+  7. Use the word "उत्तरहरू" (which means Answers) to label your sections.
+  8. IMPORTANT: Use LaTeX notation for all mathematical formulas and expressions (e.g., use $...$ for inline math and $$...$$ for block math). This ensures they are rendered clearly.
+  
+  Format your response in clear Markdown with numbered sections for each formula. Take your time to ensure the best, simplest, and most complete answer with lots of examples. This is the new enhanced version, so provide much more detail than before.`;
+
+  try {
+    const response = await axios.post("/api/analyze", { prompt: chatPrompt });
+    // The server returns { text: ... }
+    return response.data.text || response.data;
+  } catch (error) {
+    console.error("RapidAPI Error:", error);
+    return "Failed to get explanation from ChatGPT. Please check your API key or try again later.";
+  }
 }
 
 export async function generateSpeech(text: string) {

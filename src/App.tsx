@@ -35,6 +35,8 @@ export default function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
+  const [isSavingImage, setIsSavingImage] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -151,7 +153,6 @@ export default function App() {
     if (!contentRef.current || !explanation) return;
     setIsDownloading(true);
     try {
-      // Wait a bit for KaTeX to be fully ready
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(contentRef.current, {
@@ -160,8 +161,27 @@ export default function App() {
         allowTaint: true,
         logging: false,
         backgroundColor: "#ffffff",
-        windowWidth: contentRef.current.scrollWidth,
-        windowHeight: contentRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Force standard colors on cloned elements to avoid oklch/oklab issues in html2canvas
+          const elements = clonedDoc.getElementsByTagName('*');
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i] as HTMLElement;
+            if (el.style) {
+              const computed = window.getComputedStyle(el);
+              const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'boxShadow'];
+              props.forEach(prop => {
+                const val = (computed as any)[prop];
+                if (val && (val.includes('oklch') || val.includes('oklab'))) {
+                  if (prop === 'color') el.style.color = '#000000';
+                  else if (prop === 'backgroundColor') el.style.backgroundColor = '#ffffff';
+                  else if (prop === 'borderColor') el.style.borderColor = '#e2e8f0';
+                  else if (prop === 'boxShadow') el.style.boxShadow = 'none';
+                  else (el.style as any)[prop] = 'transparent';
+                }
+              });
+            }
+          }
+        }
       });
       
       const imgData = canvas.toDataURL("image/png");
@@ -170,7 +190,6 @@ export default function App() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
-      // Handle multi-page PDF if content is too long
       let heightLeft = pdfHeight;
       let position = 0;
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -188,9 +207,54 @@ export default function App() {
       pdf.save("BBS-Formula-Explanation.pdf");
     } catch (err) {
       console.error("PDF error:", err);
-      setError("Failed to generate PDF. Please try again.");
+      setError("Failed to generate PDF. Please try again or use 'Save Image'.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const downloadImage = async () => {
+    if (!contentRef.current || !explanation) return;
+    setIsSavingImage(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        onclone: (clonedDoc) => {
+          const elements = clonedDoc.getElementsByTagName('*');
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i] as HTMLElement;
+            if (el.style) {
+              const computed = window.getComputedStyle(el);
+              const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'boxShadow'];
+              props.forEach(prop => {
+                const val = (computed as any)[prop];
+                if (val && (val.includes('oklch') || val.includes('oklab'))) {
+                  if (prop === 'color') el.style.color = '#000000';
+                  else if (prop === 'backgroundColor') el.style.backgroundColor = '#ffffff';
+                  else if (prop === 'borderColor') el.style.borderColor = '#e2e8f0';
+                  else if (prop === 'boxShadow') el.style.boxShadow = 'none';
+                  else (el.style as any)[prop] = 'transparent';
+                }
+              });
+            }
+          }
+        }
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = 'BBS-Formula-Explanation.png';
+      link.click();
+    } catch (err) {
+      console.error("Image error:", err);
+      setError("Failed to save image. Please try again.");
+    } finally {
+      setIsSavingImage(false);
     }
   };
 
@@ -429,6 +493,18 @@ export default function App() {
                           <Download size={14} />
                         )}
                         {isDownloading ? "Saving..." : "Save PDF"}
+                      </button>
+                      <button 
+                        onClick={downloadImage}
+                        disabled={isSavingImage}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded-full font-bold text-xs bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm"
+                      >
+                        {isSavingImage ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Camera size={14} />
+                        )}
+                        {isSavingImage ? "Saving..." : "Save Image"}
                       </button>
                     </div>
                   </div>
