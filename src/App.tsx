@@ -35,8 +35,6 @@ export default function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
-  const [isSavingImage, setIsSavingImage] = useState(false);
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -153,48 +151,17 @@ export default function App() {
     if (!contentRef.current || !explanation) return;
     setIsDownloading(true);
     try {
+      // Wait a bit for KaTeX to be fully ready
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const canvas = await html2canvas(contentRef.current, {
-        scale: 3, // Increased scale for better quality
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: "#ffffff",
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        onclone: (clonedDoc) => {
-          // Force standard colors on cloned elements to avoid oklch/oklab issues in html2canvas
-          const elements = clonedDoc.getElementsByTagName('*');
-          for (let i = 0; i < elements.length; i++) {
-            const el = elements[i] as HTMLElement;
-
-            // Fix for KaTeX/Math rendering in html2canvas
-            if (el.classList.contains('katex-html')) {
-              el.style.display = 'inline-block';
-              el.style.width = 'auto';
-            }
-            // Fix for division lines (vlist)
-            if (el.classList.contains('vlist-t')) {
-              el.style.display = 'inline-table';
-            }
-
-            if (el.style) {
-              const computed = window.getComputedStyle(el);
-              const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'boxShadow'];
-              props.forEach(prop => {
-                const val = (computed as any)[prop];
-                if (val && (val.includes('oklch') || val.includes('oklab'))) {
-                  if (prop === 'color') el.style.color = '#000000';
-                  else if (prop === 'backgroundColor') el.style.backgroundColor = '#ffffff';
-                  else if (prop === 'borderColor') el.style.borderColor = '#e2e8f0';
-                  else if (prop === 'boxShadow') el.style.boxShadow = 'none';
-                  else (el.style as any)[prop] = 'transparent';
-                }
-              });
-            }
-          }
-        }
+        windowWidth: contentRef.current.scrollWidth,
+        windowHeight: contentRef.current.scrollHeight,
       });
       
       const imgData = canvas.toDataURL("image/png");
@@ -203,6 +170,7 @@ export default function App() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
+      // Handle multi-page PDF if content is too long
       let heightLeft = pdfHeight;
       let position = 0;
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -220,67 +188,9 @@ export default function App() {
       pdf.save("BBS-Formula-Explanation.pdf");
     } catch (err) {
       console.error("PDF error:", err);
-      setError("Failed to generate PDF. Please try again or use 'Save Image'.");
+      setError("Failed to generate PDF. Please try again.");
     } finally {
       setIsDownloading(false);
-    }
-  };
-
-  const downloadImage = async () => {
-    if (!contentRef.current || !explanation) return;
-    setIsSavingImage(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 3, // Increased scale for better quality
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        onclone: (clonedDoc) => {
-          const elements = clonedDoc.getElementsByTagName('*');
-          for (let i = 0; i < elements.length; i++) {
-            const el = elements[i] as HTMLElement;
-
-            // Fix for KaTeX/Math rendering in html2canvas
-            if (el.classList.contains('katex-html')) {
-              el.style.display = 'inline-block';
-              el.style.width = 'auto';
-            }
-            // Fix for division lines (vlist)
-            if (el.classList.contains('vlist-t')) {
-              el.style.display = 'inline-table';
-            }
-
-            if (el.style) {
-              const computed = window.getComputedStyle(el);
-              const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'boxShadow'];
-              props.forEach(prop => {
-                const val = (computed as any)[prop];
-                if (val && (val.includes('oklch') || val.includes('oklab'))) {
-                  if (prop === 'color') el.style.color = '#000000';
-                  else if (prop === 'backgroundColor') el.style.backgroundColor = '#ffffff';
-                  else if (prop === 'borderColor') el.style.borderColor = '#e2e8f0';
-                  else if (prop === 'boxShadow') el.style.boxShadow = 'none';
-                  else (el.style as any)[prop] = 'transparent';
-                }
-              });
-            }
-          }
-        }
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = 'BBS-Formula-Explanation.png';
-      link.click();
-    } catch (err) {
-      console.error("Image error:", err);
-      setError("Failed to save image. Please try again.");
-    } finally {
-      setIsSavingImage(false);
     }
   };
 
@@ -294,6 +204,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-100 pb-10">
+      {/* Version Banner - Impossible to miss */}
+      <div className="bg-indigo-600 text-white py-2 text-center text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] shadow-md relative z-[60]">
+        Latest Version 2.0 - Enhanced with 3x Examples & Thinking Mode
+      </div>
+      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -302,7 +217,10 @@ export default function App() {
               <BookOpen size={20} className="sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">BBS Formulas</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">BBS Formulas</h1>
+                <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">v2.0</span>
+              </div>
               <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-widest">T.U. BBS 4th Year • Enhanced</p>
             </div>
           </div>
@@ -517,18 +435,6 @@ export default function App() {
                         )}
                         {isDownloading ? "Saving..." : "Save PDF"}
                       </button>
-                      <button 
-                        onClick={downloadImage}
-                        disabled={isSavingImage}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded-full font-bold text-xs bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm"
-                      >
-                        {isSavingImage ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <Camera size={14} />
-                        )}
-                        {isSavingImage ? "Saving..." : "Save Image"}
-                      </button>
                     </div>
                   </div>
                   <div ref={contentRef} className="p-6 sm:p-8 prose prose-slate max-w-none overflow-auto">
@@ -555,7 +461,7 @@ export default function App() {
                       {explanation}
                     </ReactMarkdown>
                     
-                    <div data-html2canvas-ignore className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
                       <button 
                         onClick={reset}
                         className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group"
@@ -590,12 +496,6 @@ export default function App() {
       <footer className="max-w-4xl mx-auto px-6 py-12 text-center">
         <p className="text-xl font-bold text-slate-600">Made by Kamal Belbase</p>
         <p className="mt-2 text-xs text-slate-400">Exam-ready explanations in Nepali & English</p>
-        <div className="mt-4 flex flex-col items-center gap-2">
-          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest">
-            Powered by Google Gemini Only
-          </span>
-          <p className="text-[8px] text-slate-300 uppercase tracking-widest">Last Updated: April 7, 2026</p>
-        </div>
       </footer>
     </div>
   );
