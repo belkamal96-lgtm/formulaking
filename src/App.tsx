@@ -19,7 +19,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import * as htmlToImage from "html-to-image";
 import { analyzeFormula, generateSpeech } from "./services/gemini";
 import { cn } from "./lib/utils";
 
@@ -152,47 +152,53 @@ export default function App() {
     if (!pdfContentRef.current || !explanation) return;
     setIsDownloading(true);
     try {
-      // Wait a bit for KaTeX to be fully ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for fonts and math to be fully rendered
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const element = pdfContentRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
+      
+      // Use html-to-image to get a high-quality PNG
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1,
+        pixelRatio: 2,
         backgroundColor: "#ffffff",
-        width: element.scrollWidth,
-        height: element.scrollHeight,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
+        style: {
+          padding: "20px",
+          margin: "0",
+        }
       });
       
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // Calculate dimensions to fit the image on the PDF pages
+      const img = new Image();
+      img.src = dataUrl;
+      
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+      
+      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const imgHeight = (img.height * imgWidth) / img.width;
       
       let heightLeft = imgHeight;
-      let position = 0;
+      let position = 10; // 10mm top margin
 
       // Add first page
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
+      pdf.addImage(dataUrl, "PNG", 10, position, imgWidth, imgHeight);
+      heightLeft -= (pdfHeight - 20);
 
       // Add subsequent pages if needed
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
+        position = heightLeft - imgHeight + 10;
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
+        pdf.addImage(dataUrl, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - 20);
       }
       
-      pdf.save("Formula-Results.pdf");
+      pdf.save("BBS-Formula-Explanations.pdf");
     } catch (err) {
       console.error("PDF error:", err);
       setError("Failed to generate PDF. Please try again.");
@@ -440,6 +446,13 @@ export default function App() {
                         )}
                       </button>
                       <button 
+                        onClick={() => window.print()}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded-full font-bold text-xs bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                      >
+                        <FileText size={14} />
+                        Print
+                      </button>
+                      <button 
                         onClick={downloadPDF}
                         disabled={isDownloading}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded-full font-bold text-xs bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 transition-all shadow-sm"
@@ -461,23 +474,32 @@ export default function App() {
                       </p>
                     </div>
                     
-                    <div ref={pdfContentRef} className="bg-white p-2">
+                    <div ref={pdfContentRef} className="bg-white p-2 print:p-8 print:text-black">
+                      <div className="hidden print:block mb-8 border-b-2 border-indigo-600 pb-4">
+                        <h1 className="text-3xl font-bold text-indigo-600">BBS Formula Explanations</h1>
+                        <p className="text-slate-500">T.U. BBS 4th Year • Study Guide</p>
+                      </div>
+                      
                       <ReactMarkdown 
                         remarkPlugins={[remarkMath]}
                         rehypePlugins={[rehypeKatex]}
                         components={{
-                          h1: ({node, ...props}) => <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4" {...props} />,
-                          h2: ({node, ...props}) => <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-6 mb-3" {...props} />,
-                          h3: ({node, ...props}) => <h3 className="text-base sm:text-lg font-bold text-slate-800 mt-4 mb-2" {...props} />,
-                          p: ({node, ...props}) => <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-4" {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-2 mb-4 text-slate-600" {...props} />,
-                          li: ({node, ...props}) => <li className="ml-4 text-sm sm:text-base" {...props} />,
+                          h1: ({node, ...props}) => <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4 mt-8 first:mt-0" {...props} />,
+                          h2: ({node, ...props}) => <h2 className="text-lg sm:text-xl font-bold text-slate-800 mt-8 mb-4 border-b border-slate-100 pb-2" {...props} />,
+                          h3: ({node, ...props}) => <h3 className="text-base sm:text-lg font-bold text-slate-800 mt-6 mb-3" {...props} />,
+                          p: ({node, ...props}) => <p className="text-sm sm:text-base text-slate-600 leading-[1.8] mb-6" {...props} />,
+                          ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-3 mb-6 text-slate-600" {...props} />,
+                          li: ({node, ...props}) => <li className="ml-4 text-sm sm:text-base leading-relaxed" {...props} />,
                           code: ({node, ...props}) => <code className="bg-slate-100 text-indigo-600 px-1.5 py-0.5 rounded font-mono text-xs sm:text-sm" {...props} />,
-                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-indigo-200 pl-4 italic text-slate-500 my-4 text-sm sm:text-base" {...props} />,
+                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-indigo-200 pl-4 italic text-slate-500 my-6 text-sm sm:text-base bg-slate-50/50 py-2" {...props} />,
                         }}
                       >
                         {explanation}
                       </ReactMarkdown>
+                      
+                      <div className="hidden print:block mt-12 pt-8 border-t border-slate-200 text-center text-xs text-slate-400">
+                        Generated by BBS Formula Explainer • Kamal Belbase
+                      </div>
                     </div>
                     
                     <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center gap-4">
