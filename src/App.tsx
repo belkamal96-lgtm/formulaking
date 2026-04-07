@@ -104,7 +104,8 @@ export default function App() {
       setExplanation(result || "Could not analyze the formula.");
     } catch (err) {
       console.error("Analysis error:", err);
-      setError("Failed to analyze the formula. Please try again.");
+      const message = err instanceof Error ? err.message : "Failed to analyze the formula. Please try again.";
+      setError(message);
     } finally {
       setIsAnalyzing(false);
     }

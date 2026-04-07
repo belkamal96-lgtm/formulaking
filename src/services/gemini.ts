@@ -1,8 +1,20 @@
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const getApiKey = () => {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key || key === "MY_GEMINI_API_KEY" || key === "") {
+    return null;
+  }
+  return key;
+};
 
 export async function analyzeFormula(fileBase64: string, mimeType: string) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is missing. Please add it to your environment variables (e.g., in Vercel settings).");
+  }
+  
+  const ai = new GoogleGenAI({ apiKey });
   // Using gemini-3.1-pro-preview with HIGH thinking level for best quality as requested
   const model = "gemini-3.1-pro-preview";
   
@@ -51,6 +63,10 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
 }
 
 export async function generateSpeech(text: string) {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-2.5-flash-preview-tts";
   
   // Clean up markdown for better TTS
