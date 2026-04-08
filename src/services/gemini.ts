@@ -17,8 +17,8 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
   }
   
   const ai = new GoogleGenAI({ apiKey });
-  // Using gemini-3.1-pro-preview with HIGH thinking level for best quality as requested
-  const model = "gemini-3.1-pro-preview";
+  // Switching to gemini-2.0-flash for better reliability and higher rate limits on free tier
+  const model = "gemini-2.0-flash";
   
   const prompt = `You are an expert tutor for Tribhuvan University (T.U.) BBS 4th year students. 
   Analyze the formula(s) in the provided image or document.
@@ -40,7 +40,7 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
   
   Format your response in clear Markdown with numbered sections for each formula. Take your time to ensure the best, simplest, and most complete answer with lots of examples. Provide high-quality detail.`;
 
-  const response = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
     model,
     contents: [
       {
@@ -56,9 +56,6 @@ export async function analyzeFormula(fileBase64: string, mimeType: string) {
         ],
       },
     ],
-    config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
-    }
   });
 
   return response.text;

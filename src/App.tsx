@@ -104,7 +104,17 @@ export default function App() {
       setExplanation(result || "Could not analyze the formula.");
     } catch (err) {
       console.error("Analysis error:", err);
-      const message = err instanceof Error ? err.message : "Failed to analyze the formula. Please try again.";
+      let message = "Failed to analyze the formula. Please try again.";
+      
+      if (err instanceof Error) {
+        const errorText = err.message;
+        if (errorText.includes("429") || errorText.includes("quota") || errorText.includes("RESOURCE_EXHAUSTED")) {
+          message = "Your Gemini API Key has reached its free limit (Quota Exceeded). Please wait a few minutes and try again, or check your Google AI Studio billing settings.";
+        } else {
+          message = errorText;
+        }
+      }
+      
       setError(message);
     } finally {
       setIsAnalyzing(false);
